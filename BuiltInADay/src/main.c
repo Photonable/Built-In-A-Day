@@ -19,7 +19,9 @@
 *
 ********************************************************************************************/
 
+#include <stdio.h>
 #include "raylib.h"
+#include "C:\raylib\raylib\src\raymath.h"
 
 #if defined(PLATFORM_WEB)
     #include <emscripten/emscripten.h>
@@ -87,22 +89,47 @@ static void UpdateDrawFrame(void)
     //----------------------------------------------------------------------------------
     UpdateCamera(&camera, CAMERA_CUSTOM);
 
+    Vector3 movement = { 0.0f, 0.0f, 0.0f }; // Initialize movement vector
+
     if (IsKeyDown(KEY_W)){
-        camera.position.z -= moveSpeed;
-        camera.target.z -= moveSpeed;
+        movement.z -= 1.0f; // Move "forward"
     }
     if (IsKeyDown(KEY_S)){
-        camera.position.z += moveSpeed;
-        camera.target.z += moveSpeed;
+        movement.z += 1.0f; // Move "backward"
     }
     if (IsKeyDown(KEY_A)){
-        camera.position.x -= moveSpeed;
-        camera.target.x -= moveSpeed;
+        movement.x -= 1.0f; // Move "left"
     }
     if (IsKeyDown(KEY_D)){
-        camera.position.x += moveSpeed;
-        camera.target.x += moveSpeed;
+        movement.x += 1.0f; // Move "right"
     }
+
+    // Normalize the movement vector if any movement keys are pressed.
+    if (movement.x != 0.0f || movement.y != 0.0f || movement.z != 0.0f)
+    {
+        Vector3Normalize(movement);  // Normalize the vector
+    }
+
+    if (GetMouseWheelMove() < 0){
+        camera.fovy += 1.0f;
+        //camera.position.y -= 1.0f;
+        //camera.target.y -= 1.0f;
+    }
+
+    if (GetMouseWheelMove() > 0){
+        camera.fovy -= 1.0f;
+        //camera.position.y += 1.0f;
+        //camera.target.y += 1.0f;
+    }
+    
+    // Apply the movement to the camera
+    camera.position.x += movement.x * moveSpeed;
+    camera.position.z += movement.z * moveSpeed; //Note the use of addition and multiplication to get direction of movement right
+
+    camera.target.x += movement.x * moveSpeed;
+    camera.target.z += movement.z * moveSpeed;
+
+    //----------------------------------------------------------------------------------
     //----------------------------------------------------------------------------------
 
     // Draw
@@ -120,6 +147,9 @@ static void UpdateDrawFrame(void)
         EndMode3D();
 
         DrawText("This is a raylib example", 10, 40, 20, DARKGRAY);
+        char text[256];
+        sprintf(text, "Camera FOV: %.1f", camera.fovy);
+        DrawText(text, 10, 60, 20, DARKGRAY);
 
         DrawFPS(10, 10);
 
