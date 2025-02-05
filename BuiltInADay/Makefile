@@ -24,7 +24,7 @@
 .PHONY: all clean
 
 # Define required raylib variables
-PROJECT_NAME       ?= BIAD
+PROJECT_NAME       ?= biad
 PROJECT_VERSION    ?= 0.0.1
 RAYLIB_VERSION     ?= 5.5
 RAYLIB_PATH        ?= ..\..
