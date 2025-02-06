@@ -1,43 +1,57 @@
 /*******************************************************************************************
 *
-*   raylib [core] example - Basic 3d example
+*   Buit In A Day - Build your empire, conquer, explore and try not to fall like Rome.
 *
-*   Welcome to raylib!
+*   Version: 0.0.1
 *
-*   To compile example, just press F5.
-*   Note that compiled executable is placed in the same folder as .c file
+*   By Mikhail Schmalzried
 *
-*   You can find all basic examples on C:\raylib\raylib\examples folder or
-*   raylib official webpage: www.raylib.com
-*
-*   Enjoy using raylib. :)
-*
-*   This example has been created using raylib 1.0 (www.raylib.com)
+*   This game is built  with the Raylib game engine by Ramon Santamaria (@raysan5)
 *   raylib is licensed under an unmodified zlib/libpng license (View raylib.h for details)
 *
-*   Copyright (c) 2013-2024 Ramon Santamaria (@raysan5)
-*
+*   Copyright (c) 2013-2024 Photonable LLC / www.photonable.com
 ********************************************************************************************/
 
 #include <stdio.h>
 #include "raylib.h"
-#include "C:\raylib\raylib\src\raymath.h"
+#include "include/screens.h"
 
 #if defined(PLATFORM_WEB)
     #include <emscripten/emscripten.h>
 #endif
 
+
+//----------------------------------------------------------------------------------
+// Shared Variables Definition (global)
+// NOTE: Those variables are shared between modules through screens.h
+//----------------------------------------------------------------------------------
+GameScreen currentScreen = LOGO_SCREEN;
+Font font = { 0 };
+Music music = { 0 };
+Sound fxCoin = { 0 };
+
+
 //----------------------------------------------------------------------------------
 // Local Variables Definition (local to this module)
 //----------------------------------------------------------------------------------
-Camera camera = { 0 };
-Vector3 cubePosition = { 0 };
-float moveSpeed = 0.1f;
+
+// Required variables to manage screen transitions (fade-in and fade-out)
+static float transAlpha = 0.0f;
+static bool onTransition = false;
+static bool transFadeOut = false;
+static int transFromScreen = -1;
+static GameScreen transToScreen = UNKNOWN_SCREEN;
+
 
 //----------------------------------------------------------------------------------
 // Local Functions Declaration
 //----------------------------------------------------------------------------------
+static void ChangeToScreen(int screen);     // Change to screen, no transition effect
+static void TransitionToScreen(int screen); // Request transition to next screen
+static void UpdateTransition(void);         // Update transition effect
+static void DrawTransition(void);           // Draw transition effect (full-screen rectangle)
 static void UpdateDrawFrame(void);          // Update and draw one frame
+
 
 //----------------------------------------------------------------------------------
 // Main entry point
@@ -46,21 +60,26 @@ int main()
 {
     // Initialization
     //--------------------------------------------------------------------------------------
-    const int screenWidth = 800;
-    const int screenHeight = 450;
-
     SetConfigFlags(FLAG_WINDOW_RESIZABLE);
 
-    InitWindow(screenWidth, screenHeight, "raylib");
+    InitWindow(GetMonitorWidth(0), GetMonitorHeight(0), "Built In A Day || 0.0.1");
 
-    camera.position = (Vector3){ 0.0f, 10.0f, 8.0f };
-    camera.target = (Vector3){ 0.0f, 0.0f, 0.0f };
-    camera.up = (Vector3){ 0.0f, 1.0f, 0.0f };
-    camera.fovy = 60.0f;
-    camera.projection = CAMERA_PERSPECTIVE;
-    SetMousePosition(screenWidth / 2, screenHeight / 2);
-    MaximizeWindow();
-    ToggleFullscreen();
+    InitAudioDevice();              // Initialize audio device
+
+    // Load global data (assets that must be available in all screens)
+    //font = LoadFont("assets/fonts/PressStart2P-Regular.ttf");
+    //music = LoadMusicStream("assets/music/01 - Title Screen.mp3");
+    //fxCoin = LoadSound("assets/sounds/coin.wav");
+    //SetMusicVolume(music, 1.0f);
+    //PlayMusicStream(music);
+
+    SetMousePosition(GetScreenWidth() / 2, GetScreenHeight() / 2);
+    //MaximizeWindow();
+    //ToggleFullscreen();
+
+    // Set initial game screen
+    currentScreen = LOGO_SCREEN;
+    InitLogoScreen();
 
     //--------------------------------------------------------------------------------------
 
@@ -79,10 +98,134 @@ int main()
 
     // De-Initialization
     //--------------------------------------------------------------------------------------
+    // Unload current screen data before closing
+    switch (currentScreen)
+    {
+        case LOGO_SCREEN: UnloadLogoScreen(); break;
+        case TITLE_SCREEN: UnloadTitleScreen(); break;
+        case OPTIONS_SCREEN: UnloadOptionsScreen(); break;
+        case GAME_SCREEN: UnloadGameScreen(); break;
+        case GAME_OVER_SCREEN: UnloadGameOverScreen(); break;
+        default: break;
+    }
+
+    // Unload global data (assets that must be available in all screens)
+    //UnloadFont(font);
+    //UnloadMusicStream(music);
+    //UnloadSound(fxCoin);
+
+    CloseAudioDevice();             // Close audio device
+    //--------------------------------------------------------------------------------------
+
+    // De-Initialization
     CloseWindow();                  // Close window and OpenGL context
     //--------------------------------------------------------------------------------------
 
     return 0;
+}
+
+
+//----------------------------------------------------------------------------------
+// Module Functions Definition
+//----------------------------------------------------------------------------------
+// Change to screen, no transition effect
+static void ChangeToScreen(int screen)
+{
+    // Unload current screen
+    switch (currentScreen)
+    {
+        case LOGO_SCREEN: UnloadLogoScreen(); break;
+        case TITLE_SCREEN: UnloadTitleScreen(); break;
+        case OPTIONS_SCREEN: UnloadOptionsScreen(); break;
+        case GAME_SCREEN: UnloadGameScreen(); break;
+        case GAME_OVER_SCREEN: UnloadGameOverScreen(); break;
+        default: break;
+    }
+
+    // Init next screen
+    switch (screen)
+    {
+        case LOGO_SCREEN: UnloadLogoScreen(); break;
+        case TITLE_SCREEN: UnloadTitleScreen(); break;
+        case OPTIONS_SCREEN: UnloadOptionsScreen(); break;
+        case GAME_SCREEN: UnloadGameScreen(); break;
+        case GAME_OVER_SCREEN: UnloadGameOverScreen(); break;
+        default: break;
+    }
+
+    currentScreen = screen;
+}
+
+// Updare transition to next screen
+static void TransitionToScreen(int screen)
+{
+    onTransition = true;
+    transFadeOut = false;
+    transFromScreen = currentScreen;
+    transToScreen = screen;
+    transAlpha = 0.0f;
+}
+
+// Update transition effect (fade-in and fade-out)
+static void UpdateTransition(void)
+{
+    if (!transFadeOut)
+    {
+        transAlpha += 0.05f;
+
+        // NOTE: Due to float internal representation, condition jumps on 1.0f instead of 1.05f
+        // For that reason we compare against 1.01f, to avoid last frame loading stop
+        if (transAlpha > 1.01f)
+        {
+            transAlpha = 1.0f;
+
+            // Unload current screen
+            switch (transFromScreen)
+            {
+                case LOGO_SCREEN: UnloadLogoScreen(); break;
+                case TITLE_SCREEN: UnloadTitleScreen(); break;
+                case OPTIONS_SCREEN: UnloadOptionsScreen(); break;
+                case GAME_SCREEN: UnloadGameScreen(); break;
+                case GAME_OVER_SCREEN: UnloadGameOverScreen(); break;
+                default: break;
+            }
+
+            // Init next screen
+            switch (transToScreen)
+            {
+                case LOGO_SCREEN: InitLogoScreen(); break;
+                case TITLE_SCREEN: InitTitleScreen(); break;
+                case OPTIONS_SCREEN: InitOptionsScreen(); break;
+                case GAME_SCREEN: InitGameScreen(); break;
+                case GAME_OVER_SCREEN: InitGameOverScreen(); break;
+                default: break;
+            }
+
+            currentScreen = transToScreen;
+
+            // Activate fade-out effect to next loaded screen
+            transFadeOut = true;
+        }
+    }
+    else // Transition to fade-out logic
+    {
+        transAlpha -= 0.02f;
+
+        if (transAlpha < -0.01f)
+        {
+            transAlpha = 0.0f;
+            transFadeOut = false;
+            onTransition = false;
+            transFromScreen = -1;
+            transToScreen = UNKNOWN_SCREEN;
+        }
+    }
+}
+
+// Draw transition effect (full-screen rectangle)
+static void DrawTransition(void)
+{
+    DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), Fade(BLACK, transAlpha));
 }
 
 // Update and draw game frame
@@ -90,74 +233,70 @@ static void UpdateDrawFrame(void)
 {
     // Update
     //----------------------------------------------------------------------------------
-    UpdateCamera(&camera, CAMERA_CUSTOM);
+    // UpdateMusicStream(music);           // NOTE: Music keeps playing between screens
 
-    Vector3 movement = { 0.0f, 0.0f, 0.0f }; // Initialize movement vector
-
-    if (IsKeyDown(KEY_W) || GetMousePosition().y < 20){
-        movement.z -= 1.0f; // Move "forward"
-    }
-    if (IsKeyDown(KEY_S) || GetMousePosition().y > GetScreenHeight() - 20){
-        movement.z += 1.0f; // Move "backward"
-    }
-    if (IsKeyDown(KEY_A) || GetMousePosition().x < 20){
-        movement.x -= 1.0f; // Move "left"
-    }
-    if (IsKeyDown(KEY_D) || GetMousePosition().x > GetScreenWidth() - 20){
-        movement.x += 1.0f; // Move "right"
-    }
-
-    // Normalize the movement vector if any movement keys are pressed.
-    if (movement.x != 0.0f || movement.y != 0.0f || movement.z != 0.0f)
+    if (!onTransition)
     {
-        Vector3Normalize(movement);  // Normalize the vector
-    }
+        switch (currentScreen)
+        {
+            case LOGO_SCREEN:
+            {
+                UpdateLogoScreen();
 
-    if (GetMouseWheelMove() < 0){
-        camera.fovy += 1.0f;
-        if (camera.fovy > 90.0f) camera.fovy = 90.0f;
-        //camera.position.y -= 1.0f;
-        //camera.target.y -= 1.0f;
-    }
+                if (FinishLogoScreen()) TransitionToScreen(TITLE_SCREEN);
+            } break;
+            case TITLE_SCREEN:
+            {
+                UpdateTitleScreen();
 
-    if (GetMouseWheelMove() > 0){
-        camera.fovy -= 1.0f;
-        if (camera.fovy < 5.0f) camera.fovy = 5.0f;
-        //camera.position.y += 1.0f;
-        //camera.target.y += 1.0f;
+                if (FinishTitleScreen() == 1) TransitionToScreen(OPTIONS_SCREEN);
+                else if (FinishTitleScreen() == 2) TransitionToScreen(GAME_SCREEN);
+            } break;
+            case OPTIONS_SCREEN:
+            {
+                UpdateOptionsScreen();
+
+                if (FinishOptionsScreen()) TransitionToScreen(TITLE_SCREEN);
+            } break;
+            case GAME_SCREEN:
+            {
+                UpdateGameScreen();
+
+                if (FinishGameScreen() == 1) TransitionToScreen(GAME_OVER_SCREEN);
+                //else if (FinishGameScreen() == 2) TransitionToScreen(TITLE_SCREEN);
+            } break;
+            case GAME_OVER_SCREEN:
+            {
+                UpdateGameOverScreen();
+
+                if (FinishGameOverScreen() == 1) TransitionToScreen(TITLE_SCREEN);
+        } break;
+        default: break;
+        }
     }
+    else UpdateTransition();    // Update transition (fade-in and fade-out)
+    //----------------------------------------------------------------------------------
+
     
-    // Apply the movement to the camera
-    camera.position.x += movement.x * moveSpeed;
-    camera.position.z += movement.z * moveSpeed; //Note the use of addition and multiplication to get direction of movement right
-
-    camera.target.x += movement.x * moveSpeed;
-    camera.target.z += movement.z * moveSpeed;
-
     //----------------------------------------------------------------------------------
-    //----------------------------------------------------------------------------------
-
     // Draw
     //----------------------------------------------------------------------------------
     BeginDrawing();
 
         ClearBackground(RAYWHITE);
 
-        BeginMode3D(camera);
+        switch (currentScreen)
+        {
+            case LOGO_SCREEN: DrawLogoScreen(); break;
+            case TITLE_SCREEN: DrawTitleScreen(); break;
+            case OPTIONS_SCREEN: DrawOptionsScreen(); break;
+            case GAME_SCREEN: DrawGameScreen(); break;
+            case GAME_OVER_SCREEN: DrawGameOverScreen(); break;
+            default: break;
+        }
 
-            DrawCube(cubePosition, 2.0f, 2.0f, 2.0f, RED);
-            DrawCubeWires(cubePosition, 2.0f, 2.0f, 2.0f, MAROON);
-            DrawGrid(1000, 0.5f);
-
-        EndMode3D();
-
-        DrawText("This is a raylib example", 10, 40, 20, DARKGRAY);
-        char text[256];
-        sprintf(text, "Camera FOV: %.1f", camera.fovy);
-        DrawText(text, 10, 60, 20, DARKGRAY);
-        char mouseText[256];
-        sprintf(mouseText, "Mouse Position: (%.0f, %.0f)", GetMousePosition().x, GetMousePosition().y);
-        DrawText(mouseText, 10, 80, 20, DARKGRAY);
+        // Draw full screen recatangle (fade effect) in front of everything
+        if (onTransition) DrawTransition();
 
         DrawFPS(10, 10);
 

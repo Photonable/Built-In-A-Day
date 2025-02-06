@@ -28,6 +28,7 @@ PROJECT_NAME       ?= biad
 PROJECT_VERSION    ?= 0.0.1
 RAYLIB_VERSION     ?= 5.5
 RAYLIB_PATH        ?= ..\..
+INCLUDE_PATHS      ?= -ID:/C Stuff/BIAD/BuiltInADay/include/
 
 # Define compiler path on Windows
 COMPILER_PATH      ?= C:/raylib/w64devkit/bin
@@ -195,7 +196,6 @@ endif
 #  -Wno-missing-braces  ignore invalid warning (GCC bug 53119)
 #  -D_DEFAULT_SOURCE    use with -std=c99 on Linux and PLATFORM_WEB, required for timespec
 CFLAGS += -Wall -std=c99 -D_DEFAULT_SOURCE -Wno-missing-braces
-
 ifeq ($(BUILD_MODE),DEBUG)
     CFLAGS += -g -O0
 else
@@ -208,7 +208,7 @@ ifeq ($(PLATFORM),PLATFORM_DESKTOP)
     ifeq ($(PLATFORM_OS),WINDOWS)
         # resource file contains windows executable icon and properties
         # -Wl,--subsystem,windows hides the console window
-        CFLAGS += $(RAYLIB_PATH)/src/raylib.rc.data -Wl,--subsystem,windows
+        CFLAGS += $(INCLUDE_PATHS) $(RAYLIB_PATH)/src/raylib.rc.data -Wl,--subsystem,windows
     endif
     ifeq ($(PLATFORM_OS),LINUX)
         ifeq ($(RAYLIB_LIBTYPE),STATIC)
@@ -250,7 +250,7 @@ endif
 
 # Define include paths for required headers
 # NOTE: Several external required libraries (stb and others)
-INCLUDE_PATHS = -I. -I$(RAYLIB_PATH)/src -I$(RAYLIB_PATH)/src/external -Iinclude
+INCLUDE_PATHS = -I. -I$(RAYLIB_PATH)/src -I$(RAYLIB_PATH)/src/external
 
 # Define additional directories containing required header files
 ifeq ($(PLATFORM),PLATFORM_RPI)
