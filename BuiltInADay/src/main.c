@@ -58,6 +58,9 @@ int main()
     camera.up = (Vector3){ 0.0f, 1.0f, 0.0f };
     camera.fovy = 60.0f;
     camera.projection = CAMERA_PERSPECTIVE;
+    SetMousePosition(screenWidth / 2, screenHeight / 2);
+    MaximizeWindow();
+    ToggleFullscreen();
 
     //--------------------------------------------------------------------------------------
 
@@ -91,16 +94,16 @@ static void UpdateDrawFrame(void)
 
     Vector3 movement = { 0.0f, 0.0f, 0.0f }; // Initialize movement vector
 
-    if (IsKeyDown(KEY_W)){
+    if (IsKeyDown(KEY_W) || GetMousePosition().y < 20){
         movement.z -= 1.0f; // Move "forward"
     }
-    if (IsKeyDown(KEY_S)){
+    if (IsKeyDown(KEY_S) || GetMousePosition().y > GetScreenHeight() - 20){
         movement.z += 1.0f; // Move "backward"
     }
-    if (IsKeyDown(KEY_A)){
+    if (IsKeyDown(KEY_A) || GetMousePosition().x < 20){
         movement.x -= 1.0f; // Move "left"
     }
-    if (IsKeyDown(KEY_D)){
+    if (IsKeyDown(KEY_D) || GetMousePosition().x > GetScreenWidth() - 20){
         movement.x += 1.0f; // Move "right"
     }
 
@@ -112,12 +115,14 @@ static void UpdateDrawFrame(void)
 
     if (GetMouseWheelMove() < 0){
         camera.fovy += 1.0f;
+        if (camera.fovy > 90.0f) camera.fovy = 90.0f;
         //camera.position.y -= 1.0f;
         //camera.target.y -= 1.0f;
     }
 
     if (GetMouseWheelMove() > 0){
         camera.fovy -= 1.0f;
+        if (camera.fovy < 5.0f) camera.fovy = 5.0f;
         //camera.position.y += 1.0f;
         //camera.target.y += 1.0f;
     }
@@ -150,6 +155,9 @@ static void UpdateDrawFrame(void)
         char text[256];
         sprintf(text, "Camera FOV: %.1f", camera.fovy);
         DrawText(text, 10, 60, 20, DARKGRAY);
+        char mouseText[256];
+        sprintf(mouseText, "Mouse Position: (%.0f, %.0f)", GetMousePosition().x, GetMousePosition().y);
+        DrawText(mouseText, 10, 80, 20, DARKGRAY);
 
         DrawFPS(10, 10);
 
