@@ -2,6 +2,7 @@
 #include "raylib.h"
 #include "C:\raylib\raylib\src\raymath.h"
 #include "include/screens.h"
+#include "include/clay.h"
 
 //----------------------------------------------------------------------------------
 // Module Variables Definition (local)

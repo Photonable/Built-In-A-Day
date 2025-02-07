@@ -16,6 +16,9 @@
 #include "raylib.h"
 #include "include/screens.h"
 
+#define CLAY_IMPLEMENTATION
+
+
 #if defined(PLATFORM_WEB)
     #include <emscripten/emscripten.h>
 #endif
@@ -295,7 +298,7 @@ static void UpdateDrawFrame(void)
             default: break;
         }
 
-        // Draw full screen recatangle (fade effect) in front of everything
+        // Draw full screen rectangle (fade effect) in front of everything
         if (onTransition) DrawTransition();
 
         DrawFPS(10, 10);

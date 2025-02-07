@@ -48,6 +48,7 @@ void InitLogoScreen(void)
 // Logo Screen Update logic
 void UpdateLogoScreen(void)
 {
+    
     if (state == 0)                 // State 0: Top-left square corner blink logic
     {
         framesCounter++;
@@ -86,7 +87,7 @@ void UpdateLogoScreen(void)
         }
         else    // When all letters have appeared, just fade out everything
         {
-            if (framesCounter > 200)
+            if (framesCounter > 400)
             {
                 alpha -= 0.02f;
 
@@ -132,7 +133,7 @@ void DrawLogoScreen(void)
 
         DrawText(TextSubtext("raylib", 0, lettersCount), GetScreenWidth()/2 - 44, GetScreenHeight()/2 + 48, 50, Fade(BLACK, alpha));
 
-        if (framesCounter > 20) DrawText("powered by", logoPositionX, logoPositionY - 27, 20, Fade(DARKGRAY, alpha));
+        if (framesCounter > 10) DrawText("powered by", logoPositionX, logoPositionY - 27, 20, Fade(DARKGRAY, alpha));
     }
 }
 
