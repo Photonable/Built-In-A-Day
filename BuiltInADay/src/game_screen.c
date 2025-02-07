@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include "raylib.h"
-#include "C:\raylib\raylib\src\raymath.h"
+#include "raymath.h"
 #include "include/screens.h"
 
 //----------------------------------------------------------------------------------
