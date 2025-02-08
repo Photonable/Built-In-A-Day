@@ -28,7 +28,6 @@ PROJECT_NAME       ?= biad
 PROJECT_VERSION    ?= 0.0.1
 RAYLIB_VERSION     ?= 5.5
 RAYLIB_PATH        ?= ..\..
-INCLUDE_PATHS      ?= -ID:/C Stuff/BIAD/BuiltInADay/include/
 
 # Define compiler path on Windows
 COMPILER_PATH      ?= C:/raylib/w64devkit/bin
@@ -250,7 +249,7 @@ endif
 
 # Define include paths for required headers
 # NOTE: Several external required libraries (stb and others)
-INCLUDE_PATHS = -I. -I$(RAYLIB_PATH)/src -I$(RAYLIB_PATH)/src/external
+INCLUDE_PATHS = -I. -I$(RAYLIB_PATH)/src -I$(RAYLIB_PATH)/src/external -Iinclude
 
 # Define additional directories containing required header files
 ifeq ($(PLATFORM),PLATFORM_RPI)

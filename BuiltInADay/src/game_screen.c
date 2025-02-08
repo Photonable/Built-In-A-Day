@@ -1,8 +1,15 @@
 #include <stdio.h>
+
+#ifdef WIN32
+    #define RAYLIB_PATH "C:/raylib/raylib/src"
+#else
+    #define RAYLIB_PATH "/usr/local/include"
+#endif
+
 #include "raylib.h"
 #include "raymath.h"
-#include "include/screens.h"
-#include "include/clay.h"
+#include "screens.h"
+#include "clay.h"
 
 //----------------------------------------------------------------------------------
 // Module Variables Definition (local)
