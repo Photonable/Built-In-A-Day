@@ -1,9 +1,3 @@
-#ifdef WIN32
-    #define RAYLIB_PATH "C:/raylib/raylib/src"
-#else
-    #define RAYLIB_PATH "/usr/local/include"
-#endif
-
 #include "raylib.h"
 #include "screens.h"
 
